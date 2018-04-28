@@ -79,7 +79,7 @@ function evolution_strat(theta, alpha1, sigma, x1, J, dt, T, n, returns, costs)
     F_e = zeros(length(theta_vec),n);
     i = 1;
     while i<n
-        epsilon_i = randn!(zeros(length(theta_vec))); #noise vector
+        epsilon_i = randn!(zeros(length(theta_vec))); #noise vector #maybe try map(x->x+randn!(zeros(1)),ones(length(theta_vec))) (faster?)
         theta_temp1 = vec2arr(theta_vec + sigma.*epsilon_i, theta); #add noise vector to the initial weights
         gain[i] = 1./returns(theta_temp1,x1,dt,T,costs)[1]; #compute costs
         F_e[:,i] = gain[i]*epsilon_i;
@@ -93,16 +93,17 @@ function evolution_strat(theta, alpha1, sigma, x1, J, dt, T, n, returns, costs)
     return theta_optim;
 end
 
-function episode(theta,x1,sigma,alpha1,returns, costs; maxiter=1000, dt = 0.01, T = 15, n = 2000)
+#train the network iteratively
+function train(theta,x1,sigma,alpha1,returns, costs; maxiter=1000, dt = 0.01, T = 15, n = 2000)
     X = zeros(4);
     X = x1;
-    J = 0;
+    J = zeros(maxiter);
     z = evolution_strat(theta,alpha1,sigma,x1,J,dt,T,n,returns,costs);
     u = 0;
     i = 1;
-    while i < maxiter #|| ((J./(J-costs(X,eval_nn(z,)))) > 0.99 && J./(J-costs(z,X)) < 1.01)
+    while i < maxiter
         z = evolution_strat(z,alpha1,sigma,X,J,dt,T,n,returns,costs);
-        #J = returns(z,x1,dt,T,costs)[1];
+        J[i] = returns(z[1],x1,dt,T,costs)[1];
         i += 1;
     end
 return z;

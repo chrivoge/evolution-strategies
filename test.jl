@@ -1,9 +1,8 @@
 using InvPendulum, Plots
 
-
-
+#Cost function
 function cost_test(X)
-return 1/abs(X[1]);
+return 1/(X[1]^2+X[2]^2);
 end
 
 function guete_test(theta,x,dt,T,costs)
@@ -28,9 +27,7 @@ function evolution_test(theta, alpha1, sigma, x1, J, dt, T, n, returns, costs)
     F_e = zeros(length(theta_vec),n);
     i = 1;
     while i<n
-        epsilon_i = randn!(zeros(length(theta_vec))); #noise vector
-        #map(x->x+randn!(zeros(1)),ones(3000))
-
+        epsilon_i = randn!(zeros(length(theta_vec))); #noise vector #maybe try map(x->x+randn!(zeros(1)),ones(length(theta_vec))) (faster?)
         theta_temp1 = vec2arr(theta_vec + sigma.*epsilon_i, theta); #add noise vector to the initial weights
         gain[i] = returns(theta_temp1,x1,dt,T,costs)[1]; #compute costs
         F_e[:,i] = gain[i]*epsilon_i;
@@ -78,8 +75,8 @@ function vec2arr(theta_vec, theta_orig)
     return theta_arr;
 end
 
-
-function episode(theta,x1,sigma,alpha1,returns, costs; maxiter=2, dt = 1, T = 100, n = 2000)
+#train the neural network iteratively
+function train(theta,x1,sigma,alpha1,returns, costs; maxiter=1000, dt = 1, T = 100, n = 1000)
     X = zeros(4);
     X = x1;
     J = zeros(maxiter);
@@ -88,7 +85,7 @@ function episode(theta,x1,sigma,alpha1,returns, costs; maxiter=2, dt = 1, T = 10
     J[1] = goal;
     u = 0;
     i = 2;
-    while i < maxiter && J[i-1]/goal < 1.2
+    while i <= maxiter && J[i-1]/goal < 10
         z = evolution_test(z[1],alpha1,sigma,X,0,dt,T,n,returns,costs);
         J[i] = returns(z[1],x1,dt,T,costs)[1];
         i += 1;
@@ -97,7 +94,8 @@ function episode(theta,x1,sigma,alpha1,returns, costs; maxiter=2, dt = 1, T = 10
 return (z,J);
 end
 
-function run(theta,x1; dt = 0.01, T = 5, n = 2000)
+#Try net on an episode
+function run_episode(theta,x1; dt = 1, T = 100, n = 1000)
     t = 0:dt:T;
     X = zeros(2,length(t)+1);
     X[:,1] = x1;
@@ -120,7 +118,7 @@ function eval_nn(w, x)
     return w[end-1] * x .+ w[end]
 end
 
-layers_Nneurons = [2, 16, 16, 8, 1];
+layers_Nneurons = [2, 16, 16, 8, 2];
 #const rng = MersenneTwister(1234);
 
 nn_params = [randn(layers_Nneurons[2], layers_Nneurons[1]),
